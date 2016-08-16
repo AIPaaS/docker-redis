@@ -4,6 +4,7 @@
 ## single: START_MODE,REDIS_PORT,MAX_MEM,PASSWORD ##
 ## cluster: START_MODE,REDIS_PORT,MAX_MEM ##
 ## slave: START_MODE,REDIS_PORT,MAX_MEM,PASSWORD,MASTER_IP,MASTER_PORT ## 
+## sentinel: START_MODE,REDIS_PORT,PASSWORD,MASTER_IP,MASTER_PORT ##
 
 REDIS_CONF="/etc/redis/redis.conf"
 
@@ -32,8 +33,15 @@ else if [[ ${START_MODE} = "slave" ]]; then
     echo "masterauth ${PASSWORD}" >> ${REDIS_CONF}
     echo "protected-mode no" >> ${REDIS_CONF}
     echo "appendonly no" >> ${REDIS_CONF}
+else if [[ ${START_MODE} = "sentinel" ]]; then
+    echo "port ${REDIS_PORT}" >> ${REDIS_CONF}
+    echo "sentinel monitor mymaster ${MASTER_IP} ${MASTER_PORT} 1" >> ${REDIS_CONF}
+    echo "sentinel down-after-milliseconds mymaster 5000" >> ${REDIS_CONF}
+    echo "sentinel failover-timeout mymaster 900000" >> ${REDIS_CONF}
+    echo "sentinel auth-pass mymaster ${PASSWORD}" >> ${REDIS_CONF}
 else
   echo "no need change redis config."
+fi
 fi
 fi
 fi
@@ -44,7 +52,12 @@ doSql=true
 while(true); do
   if $doSql; then 
       ## start redis server
-      nohup redis-server ${REDIS_CONF} &
+      if [[ ${START_MODE} = "sentinel" ]]; then
+        nohup redis-server ${REDIS_CONF} --sentinel &
+      else
+        nohup redis-server ${REDIS_CONF} &
+      fi
+
       echo "started redis server ......."
       doSql=false
   fi 
