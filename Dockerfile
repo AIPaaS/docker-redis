@@ -1,4 +1,8 @@
 FROM centos:7 
+
+ENV TZ "Asia/Shanghai"
+ENV TERM xterm
+
 RUN groupadd -r redis && useradd -r -g redis redis
 RUN yum -y install gcc libc6-dev make
 
