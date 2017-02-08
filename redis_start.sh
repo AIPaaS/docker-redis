@@ -28,12 +28,15 @@ else if [[ ${START_MODE} = "cluster" ]] ; then
 else if [[ ${START_MODE} = "master" ]]; then
     echo "port ${REDIS_PORT}" >> ${REDIS_CONF}
     echo "maxmemory ${MAX_MEM}" >> ${REDIS_CONF}
+    echo "requirepass ${PASSWORD}" >> ${REDIS_CONF}
     echo "protected-mode no" >> ${REDIS_CONF}
     echo "appendonly yes" >> ${REDIS_CONF}
 else if [[ ${START_MODE} = "replication" ]]; then
     echo "port ${REDIS_PORT}" >> ${REDIS_CONF}
     echo "maxmemory ${MAX_MEM}" >> ${REDIS_CONF}
     echo "slaveof ${MASTER_IP} ${MASTER_PORT}" >> ${REDIS_CONF}
+    echo "masterauth ${PASSWORD}" >> ${REDIS_CONF}
+    echo "requirepass ${PASSWORD}" >> ${REDIS_CONF}    
     echo "protected-mode no" >> ${REDIS_CONF}
     echo "appendonly no" >> ${REDIS_CONF}
 else if [[ ${START_MODE} = "sentinel" ]]; then
