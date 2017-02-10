@@ -44,7 +44,7 @@ else if [[ ${START_MODE} = "replication" ]]; then
           sleep 60
           exit 1
         fi 
-        redis-cli -h ${master} INFO
+        redis-cli -h ${master} -p ${MASTER_PORT} INFO
         if [[ "$?" == "0" ]]; then
           break
         fi
@@ -70,7 +70,7 @@ else if [[ ${START_MODE} = "sentinel" ]]; then
         echo "get master ip from host: ${master}"
       fi
 
-      redis-cli -h ${master} INFO
+      redis-cli -h ${master} -p ${MASTER_PORT} INFO
       if [[ "$?" == "0" ]]; then
         break
       fi
