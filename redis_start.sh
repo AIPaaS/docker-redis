@@ -63,9 +63,11 @@ else if [[ ${START_MODE} = "sentinel" ]]; then
     while true; do
       master=$(redis-cli -h ${REDIS_SENTINEL_SERVICE_HOST} -p ${REDIS_SENTINEL_SERVICE_PORT} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | cut -d' ' -f1)
       if [[ -n ${master} ]]; then
+        echo "get master address: ${master//\"}"
         master="${master//\"}"
       else
         master=$(hostname -i)
+        echo "get master ip from host: ${master}"
       fi
 
       redis-cli -h ${master} INFO
@@ -75,6 +77,7 @@ else if [[ ${START_MODE} = "sentinel" ]]; then
       echo "Connecting to master failed.  Waiting..."
       sleep 10
     done        
+    echo "master id and port is : ${master} ${MASTER_PORT}"
     echo "sentinel monitor mymaster ${master} ${MASTER_PORT} 1" >> ${REDIS_CONF}
   
     echo "port ${REDIS_PORT}" >> ${REDIS_CONF}    
