@@ -51,8 +51,9 @@ else if [[ ${START_MODE} = "replication" ]]; then
         echo "Connecting to master failed.  Waiting..."
         sleep 10
       done
-      MASTER_IP =${master}
+      MASTER_IP=${master}
     fi  
+    echo "master id and port is : ${MASTER_IP} ${MASTER_PORT}"
     echo "slaveof ${MASTER_IP} ${MASTER_PORT}" >> ${REDIS_CONF}
     echo "masterauth ${PASSWORD}" >> ${REDIS_CONF}
     echo "requirepass ${PASSWORD}" >> ${REDIS_CONF}    
