@@ -34,19 +34,56 @@ else if [[ ${START_MODE} = "master" ]]; then
 else if [[ ${START_MODE} = "replication" ]]; then
     echo "port ${REDIS_PORT}" >> ${REDIS_CONF}
     echo "maxmemory ${MAX_MEM}" >> ${REDIS_CONF}
+    if [[ -z ${MASTER_IP} ]]; then
+      while true; do
+        master=$(redis-cli -h ${REDIS_SENTINEL_SERVICE_HOST} -p ${REDIS_SENTINEL_SERVICE_PORT} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | cut -d' ' -f1)
+        if [[ -n ${master} ]]; then
+          master="${master//\"}"
+        else
+          echo "Failed to find master."
+          sleep 60
+          exit 1
+        fi 
+        redis-cli -h ${master} INFO
+        if [[ "$?" == "0" ]]; then
+          break
+        fi
+        echo "Connecting to master failed.  Waiting..."
+        sleep 10
+      done
+      MASTER_IP =${master}
+    fi  
     echo "slaveof ${MASTER_IP} ${MASTER_PORT}" >> ${REDIS_CONF}
     echo "masterauth ${PASSWORD}" >> ${REDIS_CONF}
     echo "requirepass ${PASSWORD}" >> ${REDIS_CONF}    
     echo "protected-mode no" >> ${REDIS_CONF}
     echo "appendonly no" >> ${REDIS_CONF}
 else if [[ ${START_MODE} = "sentinel" ]]; then
-    echo "port ${REDIS_PORT}" >> ${REDIS_CONF}
-    echo "sentinel monitor mymaster ${MASTER_IP} ${MASTER_PORT} 1" >> ${REDIS_CONF}
+    #get master ip from pod
+    while true; do
+      master=$(redis-cli -h ${REDIS_SENTINEL_SERVICE_HOST} -p ${REDIS_SENTINEL_SERVICE_PORT} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | cut -d' ' -f1)
+      if [[ -n ${master} ]]; then
+        master="${master//\"}"
+      else
+        master=$(hostname -i)
+      fi
+
+      redis-cli -h ${master} INFO
+      if [[ "$?" == "0" ]]; then
+        break
+      fi
+      echo "Connecting to master failed.  Waiting..."
+      sleep 10
+    done        
+    echo "sentinel monitor mymaster ${master} ${MASTER_PORT} 1" >> ${REDIS_CONF}
+  
+    echo "port ${REDIS_PORT}" >> ${REDIS_CONF}    
     echo "sentinel down-after-milliseconds mymaster 5000" >> ${REDIS_CONF}
     echo "sentinel failover-timeout mymaster 900000" >> ${REDIS_CONF}
     echo "sentinel auth-pass mymaster ${PASSWORD}" >> ${REDIS_CONF}
 else
   echo "no need change redis config."
+  
 fi
 fi
 fi
@@ -60,9 +97,9 @@ while(true); do
   if $doSql; then 
       ## start redis server
       if [[ ${START_MODE} = "sentinel" ]]; then
-        nohup redis-server ${REDIS_CONF} --sentinel &
+        redis-sentinel ${REDIS_CONF} --protected-mode no
       else
-        nohup redis-server ${REDIS_CONF} &
+         redis-server ${REDIS_CONF} --protected-mode no
       fi
 
       echo "started redis server ......."
